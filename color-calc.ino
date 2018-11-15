@@ -14,7 +14,7 @@
 
 #define MAX_Y 100.0
 
-//#define DEBUG_LOGS
+#define DEBUG_LOGS
 
 //Keypad setup: http://www.circuitbasics.com/how-to-set-up-a-keypad-on-an-arduino/, https://playground.arduino.cc/code/keypad
 
@@ -32,7 +32,7 @@ float colsTable[] = {
 };
 
 const byte rows = 4;
-const byte cols = 4; 
+const byte cols = 4;
 char keys[rows][cols] = {
   {'1', '2', '3', '+'},
   {'4', '5', '6', '-'},
@@ -150,7 +150,7 @@ void showTable(byte i) {
 }
 
 void setup() {
-#ifdef DEBUG_LOGS  
+#ifdef DEBUG_LOGS
   Serial.begin(9600);
 #endif
 
@@ -167,7 +167,7 @@ void loop() {
 
   char k = keypad.getKey();
 
-#ifdef DEBUG_LOGS  
+#ifdef DEBUG_LOGS
   if (k != 0) {
     Serial.print("k=");
     Serial.println(k);
@@ -188,9 +188,19 @@ void loop() {
       break;
     case '+':
       selectedOp = OP_PLUS;
+      Serial.println("plus");
+      if(selectedColor != COLOR_NONE) {
+        Serial.println("plusplus");
+        addTableColor(selectedColor, &r, &g, &b);
+        showAcc();
+      }
       break;
     case '-':
       selectedOp = OP_MINUS;
+      if(selectedColor != COLOR_NONE) {
+        subtractTableColor(selectedColor, &r, &g, &b);
+        showAcc();
+      }
       break;
     case '=':
       if (selectedColor != COLOR_NONE) {
