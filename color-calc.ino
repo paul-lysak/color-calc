@@ -13,8 +13,9 @@
 #define OP_SET 3
 
 #define MAX_Y 100.0
+#define MIN_Y 0.001
 
-#define DEBUG_LOGS
+//#define DEBUG_LOGS
 
 //Keypad setup: http://www.circuitbasics.com/how-to-set-up-a-keypad-on-an-arduino/, https://playground.arduino.cc/code/keypad
 
@@ -75,10 +76,17 @@ void addTableColor(byte i, float* r, float* g, float* b) {
   float r1 = *r + tableR(i);
   float g1 = *g + tableG(i);
   float b1 = *b + tableB(i);
-  float k = 1 / (r1 + g1 + b1);
-  *r = r1 * k;
-  *g = g1 * k;
-  *b = b1 * k;
+
+  float y1 = r1 + g1 + b1;
+  if(y1 > MIN_Y) {
+    *r = r1  / y1;
+    *g = g1 / y1;
+    *b = b1 / y1;
+  } else {
+    *r = 0;
+    *g = 0;
+    *b = 0;
+  }
 
 #ifdef DEBUG_LOGS
   Serial.print("addTableColor rgb= ");
@@ -104,13 +112,19 @@ void subtractTableColor(byte i, float* r, float* g, float* b) {
   float r1 = max(*r - tableR(i), 0);
   float g1 = max(*g - tableG(i), 0);
   float b1 = max(*b - tableB(i), 0);
-  float k = 1 / (r1 + g1 + b1);
-  *r = r1 * k;
-  *g = g1 * k;
-  *b = b1 * k;
+  float y1 = r1 + g1 + b1;
+  if(y1 > MIN_Y) {
+    *r = r1  / y1;
+    *g = g1 / y1;
+    *b = b1 / y1;
+  } else {
+    *r = 0;
+    *g = 0;
+    *b = 0;
+  }
 #ifdef DEBUG_LOGS
   Serial.print("subtractTableColor rgb1= ");
-  Serial.print(k);
+  Serial.print(y1);
   Serial.print(" ");
   Serial.print(r1);
   Serial.print(",");
@@ -134,6 +148,8 @@ byte selectedColor = 0;
 float r, g, b;
 
 byte selectedOp = OP_NONE;
+
+byte evaluated = 0;
 
 void show(float r, float g, float b) {
   analogWrite(RED_PIN, r * MAX_Y);
@@ -159,6 +175,8 @@ void setup() {
   pinMode(BLUE_PIN, OUTPUT);
 
   setTableColor(COLOR_DEFAULT, &r, &g, &b);
+  selectedOp = OP_SET;
+  selectedColor = COLOR_NONE;
   showAcc();
 }
 
@@ -179,27 +197,28 @@ void loop() {
       break;
     case 'C':
       setTableColor(COLOR_DEFAULT, &r, &g, &b);
-      selectedOp = OP_NONE;
+      selectedOp = OP_SET;
       selectedColor = COLOR_NONE;
       showAcc();
       break;
     case 'S':
       selectedOp = OP_SET;
+      evaluated = 1;
       break;
     case '+':
       selectedOp = OP_PLUS;
-      Serial.println("plus");
-      if(selectedColor != COLOR_NONE) {
-        Serial.println("plusplus");
+      if(!evaluated && selectedColor != COLOR_NONE) {
         addTableColor(selectedColor, &r, &g, &b);
         showAcc();
+        evaluated = 1;
       }
       break;
     case '-':
       selectedOp = OP_MINUS;
-      if(selectedColor != COLOR_NONE) {
+      if(!evaluated && selectedColor != COLOR_NONE) {
         subtractTableColor(selectedColor, &r, &g, &b);
         showAcc();
+        evaluated = 1;
       }
       break;
     case '=':
@@ -209,6 +228,7 @@ void loop() {
         } else if (selectedOp == OP_MINUS) {
           subtractTableColor(selectedColor, &r, &g, &b);
         }
+        evaluated = 1;
       }
       showAcc();
       break;
@@ -216,6 +236,9 @@ void loop() {
       selectedColor = k - '0';
       if (selectedOp == OP_SET) {
         setTableColor(selectedColor, &r, &g, &b);
+        evaluated = 1;
+      } else {
+        evaluated = 0;
       }
       if (selectedOp != OP_NONE) {
         showTable(selectedColor);
